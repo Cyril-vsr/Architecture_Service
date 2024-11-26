@@ -1,5 +1,8 @@
 package fr.insa.mas.studentManagementMS.model;
 
+import javax.xml.bind.annotation.XmlRootElement;
+
+@XmlRootElement(name = "Student")
 public class Student {
 
 	private int id;
