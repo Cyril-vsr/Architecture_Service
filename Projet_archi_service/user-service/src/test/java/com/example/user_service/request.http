@@ -1,0 +1,20 @@
+# Requête GET pour récupérer tous les utilisateurs
+GET http://localhost:8081/users
+
+###
+
+# Requête POST pour ajouter un utilisateur
+POST http://localhost:8081/users
+Content-Type: application/json
+
+{
+    "name": "Paul Doe",
+    "email": "Paul.doe@example.com"
+}
+
+###
+
+# Requête GET pour récupérer tous les utilisateurs
+GET http://localhost:8081/users/5
+
+
