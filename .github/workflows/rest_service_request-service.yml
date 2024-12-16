@@ -29,7 +29,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: java-app
-          path: '${{ github.workspace }}/Projet_archi_service/request-service/target/*.jar'
+          path: '${{ github.workspace }}/../Projet_archi_service/request-service/target/*.jar'
 
   deploy:
     runs-on: ubuntu-latest
