@@ -1,0 +1,21 @@
+GET http://localhost:8080/feedbacks
+
+###
+
+GET http://localhost:8080/feedbacks/1
+
+###
+
+POST http://localhost:8080/feedbacks
+Content-Type: application/json
+
+{
+  "feedbackText": "Pas mal le bougre!",
+  "userName": "Paul"
+}
+
+
+###
+
+DELETE http://localhost:8080/feedbacks/1
+

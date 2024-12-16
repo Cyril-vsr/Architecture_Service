@@ -1,0 +1,19 @@
+GET http://localhost:8080/requests
+
+###
+
+GET http://localhost:8080/requests/1
+
+###
+
+POST http://localhost:8080/requests
+Content-Type: application/json
+
+{
+  "description": "Request for project feedback",
+  "status": "Pending"
+}
+
+###
+
+DELETE http://localhost:8080/requests/1
