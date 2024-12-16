@@ -17,6 +17,10 @@ public class User {
     @NotBlank(message = "Email is mandatory")
     private String email;
 
+    @Enumerated(EnumType.STRING)
+    private Role role;
+    
+
     // Getters and setters
     public Long getId() {
         return id;
@@ -40,5 +44,13 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
     }
 }

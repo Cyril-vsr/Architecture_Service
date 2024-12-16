@@ -3,18 +3,39 @@ GET http://localhost:8081/users
 
 ###
 
-# Requête POST pour ajouter un utilisateur
 POST http://localhost:8081/users
 Content-Type: application/json
 
 {
-    "name": "Paul Doe",
-    "email": "Paul.doe@example.com"
+  "name": "Alice Admin",
+  "email": "alice.admin@example.com",
+  "role": "ADMIN"
 }
+
 
 ###
 
 # Requête GET pour récupérer tous les utilisateurs
-GET http://localhost:8081/users/5
+DELETE  http://localhost:8081/users/1
 
+###
 
+POST http://localhost:8081/users
+Content-Type: application/json
+
+{
+  "name": "Paul Volontaire",
+  "email": "pauln@example.com",
+  "role": "VOLONTAIRE"
+}
+
+###
+
+POST http://localhost:8081/users
+Content-Type: application/json
+
+{
+  "name": "Cyril user",
+  "email": "cyril.admin@example.com",
+  "role": "USER"
+}
