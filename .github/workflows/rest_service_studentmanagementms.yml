@@ -3,7 +3,7 @@ name: Build and deploy JAR app to Azure Web App - orchestratorMS
 on:
   push:
     branches:
-      - main
+      - REST_Service
   workflow_dispatch:
 
 jobs:
