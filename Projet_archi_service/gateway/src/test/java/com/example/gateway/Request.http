@@ -1,0 +1,32 @@
+GET http://localhost:8081/users
+
+###
+
+GET http://localhost:8082/requests
+
+###
+
+GET http://localhost:8083/feedbacks
+
+###
+
+GET http://localhost:8080/requests
+
+###
+
+GET http://localhost:8080/users
+
+###
+
+GET http://localhost:8080/feedbacks
+
+###
+
+POST http://localhost:8080/users
+Content-Type: application/json
+
+{
+  "name": "Alice Admin",
+  "email": "alice.admin@example.com",
+  "role": "ADMIN"
+}

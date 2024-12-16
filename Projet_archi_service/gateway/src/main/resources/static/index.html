@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Gateway Test</title>
+    <script>
+        async function createUser() {
+            const name = document.getElementById('userName').value;
+            const email = document.getElementById('userEmail').value;
+            const role = document.getElementById('userRole').value;
+            
+            const response = await fetch('http://localhost:8080/gateway/createUser?name=' + name + '&email=' + email + '&role=' + role, {
+                method: 'POST',
+            });
+            const data = await response.text();
+            alert('User created: ' + data);
+        }
+
+        async function createRequest() {
+            const userEmail = document.getElementById('requestUserEmail').value;
+            const description = document.getElementById('requestDescription').value;
+            
+            const response = await fetch('http://localhost:8080/gateway/requests?userEmail=' + userEmail + '&description=' + description, {
+                method: 'POST',
+            });
+            const data = await response.text();
+            alert('Request created: ' + data);
+        }
+
+        async function createFeedback() {
+            const userName = document.getElementById('feedbackUserName').value;
+            const feedbackText = document.getElementById('feedbackText').value;
+
+            // Vérifier que les champs sont bien remplis
+            if (!userName || !feedbackText) {
+                alert('Please fill in both fields.');
+                return;
+            }
+
+            // Afficher les données dans la console pour vérification
+            console.log('Sending Feedback:', { feedbackText, userName });
+
+            try {
+                const response = await fetch('http://localhost:8080/gateway/feedbacks', {
+                    method: 'POST',
+                    body: JSON.stringify({ feedbackText, userName }),  // Changer l'ordre ici
+                    headers: { 'Content-Type': 'application/json' },
+                });
+
+                // Vérifier la réponse du serveur
+                if (!response.ok) {
+                    const errorText = await response.text();  // Lire la réponse d'erreur
+                    alert('Error creating feedback: ' + errorText);
+                    return;
+                }
+
+                const data = await response.text();
+                alert('Feedback created: ' + data);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while creating feedback');
+            }
+        }
+
+    </script>
+</head>
+<body>
+    <h1>Test API Gateway</h1>
+    
+    <h2>Create User</h2>
+    <!-- Champ pour le nom -->
+    <input type="text" id="userName" placeholder="User's Name"><br>
+    
+    <!-- Champ pour l'email -->
+    <input type="email" id="userEmail" placeholder="Email"><br>
+    
+    <!-- Boîte de sélection pour choisir le rôle -->
+    <select id="userRole">
+        <option value="ADMIN">ADMIN</option>
+        <option value="USER">USER</option>
+        <option value="VOLUNTEER">VOLONTAIRE</option>
+    </select><br>
+    
+    <!-- Bouton pour créer l'utilisateur -->
+    <button onclick="createUser()">Create User</button>
+
+    <h2>Create Request</h2>
+    <input type="email" id="requestUserEmail" placeholder="User Email"><br>
+    <input type="text" id="requestDescription" placeholder="Description"><br>
+    <button onclick="createRequest()">Create Request</button>
+
+    <h2>Create Feedback</h2>
+    <!-- Assurez-vous que les ID correspondent -->
+    <input type="text" id="feedbackUserName" placeholder="User"><br>
+    <input type="text" id="feedbackText" placeholder="Feedback Message"><br>
+    <button onclick="createFeedback()">Create Feedback</button>
+    
+</body>
+</html>

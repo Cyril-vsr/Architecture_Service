@@ -1,0 +1,22 @@
+server:
+  port: 8080  # Port de l'API Gateway
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: http://localhost:8081  # Redirige vers le User Service
+          predicates:
+            - Path=/users
+
+        - id: request-service
+          uri: http://localhost:8082  # Redirige vers le Request Service
+          predicates:
+            - Path=/requests
+
+        - id: feedback-service
+          uri: http://localhost:8083  # Redirige vers le Feedback Service
+          predicates:
+            - Path=/feedbacks
+
