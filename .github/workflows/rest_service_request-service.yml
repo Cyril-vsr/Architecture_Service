@@ -29,7 +29,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: java-app
-          path: '${{ github.workspace }}/target/*.jar'
+          path: '${{ github.workspace }}/Projet_archi_service/request-service/target/*.jar'
 
   deploy:
     runs-on: ubuntu-latest
@@ -57,7 +57,7 @@ jobs:
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'request-service'
+          app-name: '/Projet_archi_service/request-service'
           slot-name: 'Production'
           package: '*.jar'
           
