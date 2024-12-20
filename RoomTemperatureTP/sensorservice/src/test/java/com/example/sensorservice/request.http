@@ -1,0 +1,28 @@
+### Test POST /sensors/add
+POST http://localhost:8081/sensors/add
+Content-Type: application/json
+
+{
+  "name": "Temperature Sensor",
+  "value": 25.5,
+  "position": "Living Room"
+}
+
+### Test GET /sensors/get/{id}
+GET http://localhost:8081/sensors/get/1
+
+### Test GET /sensors/all
+GET http://localhost:8081/sensors/all
+
+
+### Test POST /sensors/send-data/{id}
+POST http://localhost:8081/sensors/send-data/1?value=30.0
+
+### Test POST /sensors/set-position/{id}
+POST http://localhost:8081/sensors/set-position/1?position=Bedroom
+
+### Test GET /sensors/get-position/{id}
+GET http://localhost:8081/sensors/get-position/1
+
+### Test DELETE /sensors/delete/{id}
+DELETE http://localhost:8081/sensors/delete/1
