@@ -1,10 +1,10 @@
-package com.example.widowservice;
+package com.example.windowservice;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class WidowserviceApplicationTests {
+class WindowserviceApplicationTests {
 
 	@Test
 	void contextLoads() {
