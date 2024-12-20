@@ -1,0 +1,33 @@
+# 1. Create a new window
+POST http://localhost:8083/windows \
+-H "Content-Type: application/json" \
+-d '{
+    "name": "Living Room Window",
+    "status": "closed"
+}'
+
+POST http://localhost:8083/windows \
+-H "Content-Type: application/json" \
+-d '{
+    "id": 10,
+    "name": "Bedroom Window",
+    "status": "open"
+}'
+
+# 2. Get all windows
+GET http://localhost:8083/windows
+
+# 3. Get a window by ID
+GET http://localhost:8083/windows/1
+
+# 4. Update a window
+PUT http://localhost:8083/windows/1 \
+-H "Content-Type: application/json" \
+-d '{
+    "name": "Living Room Window",
+    "status": "open"
+}'
+
+# 5. Delete a window
+DELETE http://localhost:8083/windows/1
+
