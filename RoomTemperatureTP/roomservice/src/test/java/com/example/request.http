@@ -1,0 +1,38 @@
+###
+POST http://localhost:8083/rooms 
+Content-Type: application/json
+
+{
+    "name": "Living Room"
+}
+###
+
+###
+POST http://localhost:8083/rooms 
+Content-Type: application/json
+
+{
+    "name": "Bedroom"
+}
+###
+
+###
+GET http://localhost:8083/rooms
+###
+
+###
+GET http://localhost:8083/rooms/6
+###
+
+###
+PUT http://localhost:8083/rooms/11
+Content-Type: application/json
+
+{
+    "name": "Cyril Room"
+}
+###
+
+###
+DELETE http://localhost:8083/rooms/11
+###
