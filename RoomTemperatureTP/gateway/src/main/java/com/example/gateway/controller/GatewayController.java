@@ -9,16 +9,11 @@ public class GatewayController {
 
     @GetMapping("/")
     public String index() {
-        return "index"; // Correspond à src/main/resources/templates/room_and_window.html
+        return "index";
     }
 
-    //@GetMapping("/windows")
-    //public String windows() {
-    //    return "windows"; // Refers to src/main/resources/templates/index.html
-    //}
-
-    //@GetMapping("/rooms")
-   // public String rooms() {
-   //     return "rooms"; // Refers to src/main/resources/templates/index.html
-   // }
+    @GetMapping("/historic")
+    public String historic() {
+        return "historic";
+    }
 }

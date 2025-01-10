@@ -16,13 +16,22 @@ GET http://localhost:8081/sensors/all
 
 
 ### Test POST /sensors/send-data/{id}
-POST http://localhost:8081/sensors/send-data/1?value=30.0
+POST http://localhost:8081/sensors/send-data/17?value=30.0
 
 ### Test POST /sensors/set-position/{id}
-POST http://localhost:8081/sensors/set-position/1?position=Bedroom
+POST http://localhost:8081/sensors/set-position/17?position=Bedroom
 
 ### Test GET /sensors/get-position/{id}
 GET http://localhost:8081/sensors/get-position/1
 
 ### Test DELETE /sensors/delete/{id}
-DELETE http://localhost:8081/sensors/delete/1
+DELETE http://localhost:8081/sensors/delete/20
+
+### 
+
+GET http://localhost:8081/sensors/history
+
+###
+
+DELETE http://localhost:8081/sensors/history
+

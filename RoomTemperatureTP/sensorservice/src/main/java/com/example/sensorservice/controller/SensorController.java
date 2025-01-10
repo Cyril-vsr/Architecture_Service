@@ -1,6 +1,7 @@
 package com.example.sensorservice.controller;
 
 import com.example.sensorservice.model.Sensor;
+import com.example.sensorservice.model.SensorHistory;
 import com.example.sensorservice.service.SensorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -65,6 +66,20 @@ public class SensorController {
     public ResponseEntity<String> getPosition(@PathVariable int id) {
         Optional<String> position = sensorService.getPosition(id);
         return position.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+
+    // Get historic of sensors
+    @GetMapping("/history")
+    public ResponseEntity<List<SensorHistory>> getHistoricSensor() {
+        return ResponseEntity.ok(sensorService.getHistoricSensor());
+    }
+
+    // Delete all historic
+    @DeleteMapping("/history")
+    public ResponseEntity<String> deleteHistoricSensor() {
+        sensorService.deleteHistoricSensor();
+        return ResponseEntity.ok("All history deleted successfully.");
     }
 
     // New endpoint to get sensors by room ID
