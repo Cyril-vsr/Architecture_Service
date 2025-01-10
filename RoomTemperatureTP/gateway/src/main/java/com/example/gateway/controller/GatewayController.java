@@ -6,13 +6,19 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class GatewayController {
 
+
     @GetMapping("/")
-    public String windows() {
-        return "windows"; // Refers to src/main/resources/templates/index.html
+    public String index() {
+        return "index"; // Correspond à src/main/resources/templates/room_and_window.html
     }
 
-    @GetMapping("/index")
-    public String index() {
-        return "index"; // Refers to src/main/resources/templates/index.html
-    }
+    //@GetMapping("/windows")
+    //public String windows() {
+    //    return "windows"; // Refers to src/main/resources/templates/index.html
+    //}
+
+    //@GetMapping("/rooms")
+   // public String rooms() {
+   //     return "rooms"; // Refers to src/main/resources/templates/index.html
+   // }
 }

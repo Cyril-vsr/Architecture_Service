@@ -3,39 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Room Management</title>
+    <title>Room and Window Management</title>
+    <style>
+        .room { border: 2px solid blue; margin: 10px; padding: 10px; border-radius: 10px; }
+        .window { border: 2px solid green; margin: 5px; padding: 5px; display: inline-block; border-radius: 5px; }
+        .association { border: 2px dashed orange; margin: 10px; padding: 10px; }
+    </style>
 </head>
-<body onload="fetchAllRooms()">
-    <h1>Room Management</h1>
+<body onload="initialize()">
+    <h1>Room and Window Management</h1>
 
-    <h2>Add a Room</h2>
-    <form onsubmit="addRoom(event)">
-        <input type="text" id="room-name" placeholder="Room Name" required>
-        <button type="submit">Add Room</button>
-    </form>
+    <!-- Add Room -->
+    <div>
+        <h2>Add a Room</h2>
+        <form onsubmit="addRoom(event)">
+            <input type="text" id="room-name" placeholder="Room Name" required>
+            <button type="submit">Add Room</button>
+        </form>
+    </div>
 
-    <h2>Room List</h2>
+    <!-- Add Window -->
+    <div>
+        <h2>Add a Window</h2>
+        <form onsubmit="addWindow(event)">
+            <input type="text" id="window-name" placeholder="Window Name" required>
+            <select id="window-state" required>
+                <option value="OPEN">Open</option>
+                <option value="CLOSED">Closed</option>
+            </select>
+            <button type="submit">Add Window</button>
+        </form>
+    </div>
+
+    <!-- Associate -->
+    <div>
+        <h2>Associate Windows to Rooms</h2>
+        <form onsubmit="associateWindowToRoom(event)">
+            <select id="room-select" required></select>
+            <select id="window-select" required></select>
+            <button type="submit">Associate</button>
+        </form>
+    </div>
+
+    <!-- Lists -->
+    <h2>Rooms</h2>
     <div id="room-list"></div>
 
-    <h2>Room Details</h2>
-    <div id="room-details"></div>
+    <h2>Windows</h2>
+    <div id="window-list"></div>
+
+    <h2>Room-Window Associations</h2>
+    <div id="associations"></div>
 
     <script>
-        const BASE_URL = "/rooms";
+        const ROOM_URL = "/rooms";
+        const WINDOW_URL = "/windows";
+        const ASSOCIATION_URL = "/associations";
+
+        async function initialize() {
+            fetchAllRooms();
+            fetchAllWindows();
+            fetchAllAssociations();
+        }
 
         // Fetch all rooms
         function fetchAllRooms() {
-            fetch(BASE_URL)
+            fetch(ROOM_URL)
                 .then(response => response.json())
                 .then(data => {
-                    const container = document.getElementById("room-list");
-                    container.innerHTML = data.map(room => `
-                        <div>
-                            <h3>${room.name}</h3>
-                            <button onclick="fetchRoomById(${room.id})">Details</button>
-                            <button onclick="deleteRoom(${room.id})">Delete</button>
-                        </div>
-                    `).join('');
+                    const roomList = document.getElementById("room-list");
+                    const roomSelect = document.getElementById("room-select");
+                    roomList.innerHTML = "";
+                    roomSelect.innerHTML = "";
+                    data.forEach(room => {
+                        roomList.innerHTML += `
+                            <div class="room">
+                                <h3>${room.name}</h3>
+                                <button onclick="editRoom(${room.id}, '${room.name}')">Edit</button>
+                                <button onclick="deleteRoom(${room.id})">Delete</button>
+                            </div>
+                        `;
+                        roomSelect.innerHTML += `<option value="${room.name}">${room.name}</option>`;
+                    });
                 })
                 .catch(console.error);
         }
@@ -44,58 +93,153 @@
         function addRoom(event) {
             event.preventDefault();
             const name = document.getElementById("room-name").value;
-
-            fetch(BASE_URL, {
+            fetch(ROOM_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name })
             })
-                .then(response => response.json())
-                .then(() => {
-                    fetchAllRooms();
-                    document.getElementById("room-name").value = "";
-                })
+                .then(fetchAllRooms)
                 .catch(console.error);
         }
 
-        // Fetch room by ID
-        function fetchRoomById(id) {
-            fetch(`${BASE_URL}/${id}`)
-                .then(response => response.json())
-                .then(room => {
-                    const container = document.getElementById("room-details");
-                    container.innerHTML = `
-                        <h3>${room.name}</h3>
-                        <form onsubmit="updateRoom(event, ${room.id})">
-                            <input type="text" id="update-room-name" value="${room.name}">
-                            <button type="submit">Update</button>
-                        </form>
-                    `;
-                })
-                .catch(console.error);
-        }
+        // Edit a room
+        function editRoom(id, oldName) {
+         const newName = prompt("Enter new name for the room:", oldName);
+        if (!newName || newName === oldName) return;
 
-        // Update a room
-        function updateRoom(event, id) {
-            event.preventDefault();
-            const name = document.getElementById("update-room-name").value;
-
-            fetch(`${BASE_URL}/${id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name })
+        fetch(`${ROOM_URL}/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName })
             })
                 .then(() => {
-                    fetchAllRooms();
-                    document.getElementById("room-details").innerHTML = "";
+                    // Mettre à jour le nom dans les associations
+                    fetch(`${ASSOCIATION_URL}/rooms/${oldName}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name: newName })
+                    })
+                        .then(fetchAllRooms)
+                        .then(fetchAllAssociations)
+                        .catch(console.error);
                 })
                 .catch(console.error);
         }
 
         // Delete a room
         function deleteRoom(id) {
-            fetch(`${BASE_URL}/${id}`, { method: "DELETE" })
-                .then(() => fetchAllRooms())
+            if (!confirm("Are you sure you want to delete this room?")) return;
+
+            fetch(`${ROOM_URL}/${id}`, { method: "DELETE" })
+                .then(fetchAllRooms)
+                .then(fetchAllAssociations)
+                .catch(console.error);
+        }
+
+        // Fetch all windows
+        function fetchAllWindows() {
+            fetch(WINDOW_URL)
+                .then(response => response.json())
+                .then(data => {
+                    const windowList = document.getElementById("window-list");
+                    const windowSelect = document.getElementById("window-select");
+                    windowList.innerHTML = "";
+                    windowSelect.innerHTML = "";
+                    data.forEach(window => {
+                        windowList.innerHTML += `
+                            <div class="window">
+                                <h3>${window.name}</h3>
+                                <p>State: ${window.windowState}</p>
+                                <button onclick="editWindow(${window.id}, '${window.name}', '${window.windowState}')">Edit</button>
+                                <button onclick="deleteWindow(${window.id})">Delete</button>
+                            </div>
+                        `;
+                        windowSelect.innerHTML += `<option value="${window.name}">${window.name}</option>`;
+                    });
+                })
+                .catch(console.error);
+        }
+
+        // Add a window
+        function addWindow(event) {
+            event.preventDefault();
+            const name = document.getElementById("window-name").value;
+            const state = document.getElementById("window-state").value;
+            fetch(WINDOW_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, windowState: state })
+            })
+                .then(fetchAllWindows)
+                .catch(console.error);
+        }
+
+        // Edit a window
+        function editWindow(id, oldName, oldState) {
+            const newName = prompt("Enter new name for the window:", oldName);
+            const newState = prompt("Enter new state (OPEN/CLOSED):", oldState);
+            if (!newName || !newState || (newName === oldName && newState === oldState)) return;
+
+            fetch(`${WINDOW_URL}/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: newName, windowState: newState })
+            })
+                .then(() => {
+                    // Mettre à jour le nom dans les associations
+                    fetch(`${ASSOCIATION_URL}/windows/${oldName}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name: newName })
+                    })
+                        .then(fetchAllWindows)
+                        .then(fetchAllAssociations)
+                        .catch(console.error);
+                })
+                .catch(console.error);
+        }
+
+        // Delete a window
+        function deleteWindow(id) {
+            if (!confirm("Are you sure you want to delete this window?")) return;
+
+            fetch(`${WINDOW_URL}/${id}`, { method: "DELETE" })
+                .then(fetchAllWindows)
+                .then(fetchAllAssociations)
+                .catch(console.error);
+        }
+
+        // Associate a window to a room
+        function associateWindowToRoom(event) {
+            event.preventDefault();
+            const roomName = document.getElementById("room-select").value;
+            const windowName = document.getElementById("window-select").value;
+
+            fetch(ASSOCIATION_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ roomName, windowName })
+            })
+                .then(fetchAllAssociations)
+                .catch(console.error);
+        }
+
+        // Fetch all associations
+        function fetchAllAssociations() {
+            fetch(ASSOCIATION_URL)
+                .then(response => response.json())
+                .then(data => {
+                    const associationList = document.getElementById("associations");
+                    associationList.innerHTML = "";
+                    data.forEach(assoc => {
+                        associationList.innerHTML += `
+                            <div class="association">
+                                <h3>${assoc.room.name}</h3>
+                                <p>Windows: ${assoc.windows.map(w => w.name).join(", ")}</p>
+                            </div>
+                        `;
+                    });
+                })
                 .catch(console.error);
         }
     </script>
