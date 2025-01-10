@@ -35,6 +35,17 @@
         </form>
     </div>
 
+    <!-- Add Sensor -->
+    <div>
+        <h2>Add a Sensor</h2>
+        <form onsubmit="addSensor(event)">
+            <input type="text" id="sensor-name" placeholder="Sensor Name" required>
+            <input type="number" id="sensor-value" placeholder="Initial Value" required>
+            <input type="text" id="sensor-position" placeholder="Position" required>
+            <button type="submit">Add Sensor</button>
+        </form>
+    </div>
+
     <!-- Associate -->
     <div>
         <h2>Associate Windows to Rooms</h2>
@@ -52,18 +63,27 @@
     <h2>Windows</h2>
     <div id="window-list"></div>
 
+    <h2>Sensors</h2>
+    <div id="sensor-list"></div>
+    <select id="sensor-select"></select>
+
+
     <h2>Room-Window Associations</h2>
     <div id="associations"></div>
 
     <script>
         const ROOM_URL = "/rooms";
         const WINDOW_URL = "/windows";
+        const SENSOR_URL = "sensors";
         const ASSOCIATION_URL = "/associations";
 
         async function initialize() {
             fetchAllRooms();
             fetchAllWindows();
+            fetchAllSensors();
             fetchAllAssociations();
+
+            setInterval(fetchAllSensors, 5000);
         }
 
         // Fetch all rooms
@@ -159,6 +179,92 @@
                 })
                 .catch(console.error);
         }
+
+        function fetchAllSensors() {
+        fetch(`${SENSOR_URL}/all`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch sensors: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                const sensorList = document.getElementById("sensor-list");
+                const sensorSelect = document.getElementById("sensor-select");
+                sensorList.innerHTML = "";
+                sensorSelect.innerHTML = "";
+                data.forEach(sensor => {
+                    sensorList.innerHTML += `
+                        <div class="sensor">
+                            <h3>${sensor.name}</h3>
+                            <p>ID: ${sensor.id}</p>
+                            <p>Value: ${sensor.value}</p>
+                            <p>Position: ${sensor.position}</p>
+                            <button onclick="editSensor(${sensor.id}, '${sensor.name}', ${sensor.value}, '${sensor.position}')">Edit</button>
+                            <button onclick="deleteSensor(${sensor.id})">Delete</button>
+                        </div>
+                    `;
+                    sensorSelect.innerHTML += `<option value="${sensor.name}">${sensor.name}</option>`;
+                });
+            })
+            .catch(error => {
+                console.error("Error fetching sensors:", error);
+            });
+    }
+
+    function editSensor(id, oldName, oldValue, oldPosition) {
+        const newName = prompt("Enter new name for the sensor:", oldName) || oldName;
+        const newValue = prompt("Enter new value for the sensor:", oldValue) || oldValue;
+        const newPosition = prompt("Enter new position for the sensor:", oldPosition) || oldPosition;
+
+        fetch(`${SENSOR_URL}/set-position/${id}?position=${newPosition}`, { method: "POST" })
+            .then(() => {
+                fetch(`${SENSOR_URL}/send-data/${id}?value=${newValue}`, { method: "POST" });
+            })
+            .then(fetchAllSensors)
+            .catch(console.error);
+    }
+
+    function deleteSensor(id) {
+        if (!confirm("Are you sure you want to delete this sensor?")) return;
+
+        fetch(`${SENSOR_URL}/delete/${id}`, { method: "DELETE" })
+            .then(fetchAllSensors)
+            .catch(console.error);
+    }
+
+    function addSensor(event) {
+        event.preventDefault();
+        const name = document.getElementById("sensor-name").value;
+        const value = document.getElementById("sensor-value").value || 0; // Valeur par défaut si non spécifiée
+        const position = document.getElementById("sensor-position").value;
+
+        fetch(`${SENSOR_URL}/add`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, value, position })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Failed to add sensor: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(() => {
+                document.getElementById("sensor-name").value = "";
+                document.getElementById("sensor-value").value = "";
+                document.getElementById("sensor-position").value = "";
+                fetchAllSensors(); // Rafraîchir la liste des capteurs
+            })
+            .catch(error => {
+                console.error("Error adding sensor:", error);
+                alert("Failed to add sensor. Please try again.");
+            });
+    }
+
+
+
+
 
         // Add a window
         function addWindow(event) {
