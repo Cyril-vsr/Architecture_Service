@@ -1,12 +1,11 @@
 package com.example.roomservice.controller;
 
 import com.example.roomservice.model.Room;
+import com.example.roomservice.model.RoomHistory;
 import com.example.roomservice.service.RoomService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -40,15 +39,19 @@ public class RoomController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Room> updateRoom(@PathVariable Long id, @RequestBody Room roomDetails) {
-        Room room = roomService.getRoomById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found"));
-
-        if (roomDetails.getName() != null) {
-            room.setName(roomDetails.getName());
-        }
-
-        Room updatedRoom = roomService.addRoom(room);
+        Room updatedRoom = roomService.updateRoom(id, roomDetails);
         return ResponseEntity.ok(updatedRoom);
+    }
+
+    @GetMapping("/history")
+    public List<RoomHistory> getHistoricRoom() {
+        return roomService.getHistoricRoom();
+    }
+
+    @DeleteMapping("/history")
+    public ResponseEntity<String> deleteHistoricRoom() {
+        roomService.deleteHistoricRoom();
+        return ResponseEntity.ok("All history deleted successfully.");
     }
 
 }

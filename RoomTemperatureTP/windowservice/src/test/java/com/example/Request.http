@@ -27,15 +27,25 @@ GET http://localhost:8082/windows/6
 ###
 
 ###
-PUT http://localhost:8082/windows/11
+PUT http://localhost:8082/windows/29
 Content-Type: application/json
 
 {
-    "name": "Cyril Window",
+    "name": "Living Room Window",
     "windowState": "open"
 }
 ###
 
 ###
-DELETE http://localhost:8082/windows/11
+DELETE http://localhost:8082/windows/26
 ###
+
+DELETE http://localhost:8082/windows/history
+
+###
+
+###
+GET http://localhost:8082/windows/history
+
+###
+
