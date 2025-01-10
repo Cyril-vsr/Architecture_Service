@@ -9,7 +9,7 @@ public class Window {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    private Long roomId;
     private String name;
 
     @Column(nullable = false)
@@ -24,6 +24,10 @@ public class Window {
 
     public String getWindowState() { return windowState; }
     public void setWindowState(String windowState) { this.windowState = windowState; }
+    
+    public Long getRoomId() { return roomId; }
+
+    public void setRoomId(Long roomId) { this.roomId = roomId; }
 
 }
 

@@ -92,4 +92,9 @@ public class WindowService {
     public void deleteHistoricWindow() {
         windowHistoryRepository.deleteAll();
     }
+
+    // New method to get windows by room ID
+    public scala.collection.immutable.List<Window> getWindowsByRoomId(Long roomId) {
+        return windowRepository.findByRoomId(roomId);
+    }
 }

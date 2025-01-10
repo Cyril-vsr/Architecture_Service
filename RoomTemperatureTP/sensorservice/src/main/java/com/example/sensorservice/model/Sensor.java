@@ -12,6 +12,7 @@ public class Sensor {
     private String type;
     private String position;
     private double value;
+    private Long roomId;
 
     // Default constructor
     public Sensor() {}
@@ -63,5 +64,13 @@ public class Sensor {
 
     public void setValue(double value) {
         this.value = value;
+    }
+
+    public Long getRoomId() {
+        return roomId;
+    }
+
+    public void setRoomId(Long roomId) {
+        this.roomId = roomId;
     }
 }

@@ -55,4 +55,9 @@ public class WindowController {
         return ResponseEntity.ok("All history deleted successfully.");
     }
 
+    // New endpoint to get windows by room ID
+    @GetMapping("/room/{roomId}")
+    public scala.collection.immutable.List<Window> getWindowsByRoomId(@PathVariable Long roomId) {
+        return windowService.getWindowsByRoomId(roomId);
+    }
 }

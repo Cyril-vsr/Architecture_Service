@@ -60,4 +60,9 @@ public class SensorService {
         Optional<Sensor> sensor = sensorRepository.findById(sensorId);
         return sensor.map(Sensor::getPosition);
     }
+
+    // New method to get sensors by room ID
+    public List<Sensor> getSensorsByRoomId(Long roomId) {
+        return sensorRepository.findByRoomId(roomId);
+    }
 }

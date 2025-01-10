@@ -66,4 +66,10 @@ public class SensorController {
         Optional<String> position = sensorService.getPosition(id);
         return position.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
+
+    // New endpoint to get sensors by room ID
+    @GetMapping("/room/{roomId}")
+    public List<Sensor> getSensorsByRoomId(@PathVariable Long roomId) {
+        return sensorService.getSensorsByRoomId(roomId);
+    }
 }
