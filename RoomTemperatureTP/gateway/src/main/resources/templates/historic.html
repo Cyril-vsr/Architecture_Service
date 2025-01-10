@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microservices History</title>
+    <style>
+        .navigation { margin: 20px; }
+        .navigation button { padding: 10px 20px; font-size: 16px; }
+        .history { border: 2px solid black; margin: 10px; padding: 10px; border-radius: 10px; }
+        .entry { margin-bottom: 10px; padding: 5px; border-bottom: 1px solid gray; }
+        .timestamp { font-size: 0.9em; color: gray; }
+    </style>
+</head>
+<body onload="initialize()">
+    <div class="navigation">
+        <button onclick="navigateToIndex()">Back to Management</button>
+    </div>
+    <h1>Microservices History</h1>
+
+    <!-- Room History -->
+    <div>
+        <h2>Room History</h2>
+        <div id="room-history" class="history"></div>
+    </div>
+
+    <!-- Window History -->
+    <div>
+        <h2>Window History</h2>
+        <div id="window-history" class="history"></div>
+    </div>
+
+    <!-- Sensor History -->
+    <div>
+        <h2>Sensor History</h2>
+        <div id="sensor-history" class="history"></div>
+    </div>
+
+    <!-- Clear History -->
+    <div>
+        <h2>Clear History</h2>
+        <button onclick="clearHistory()">Clear All History</button>
+    </div>
+
+    <script>
+        const ROOM_HISTORY_URL = "/rooms/history";
+        const WINDOW_HISTORY_URL = "/windows/history";
+        const SENSOR_HISTORY_URL = "/sensors/history";
+
+        const DELETE_ROOM_HISTORY_URL = "/rooms/history";
+        const DELETE_WINDOW_HISTORY_URL = "/windows/history";
+        const DELETE_SENSOR_HISTORY_URL = "/sensors/history";
+
+        async function initialize() {
+            fetchRoomHistory();
+            fetchWindowHistory();
+            fetchSensorHistory();
+        }
+
+        // Fetch Room History
+        function fetchRoomHistory() {
+            fetch(ROOM_HISTORY_URL)
+                .then(response => response.json())
+                .then(data => {
+                    const historyDiv = document.getElementById("room-history");
+                    historyDiv.innerHTML = "";
+                    data.forEach(entry => {
+                        historyDiv.innerHTML += `
+                            <div class="entry">
+                                <p><strong>Operation:</strong> ${entry.operation}</p>
+                                <p><strong>Details:</strong> ${entry.details}</p>
+                                <p class="timestamp"><strong>Timestamp:</strong> ${entry.timestamp}</p>
+                            </div>
+                        `;
+                    });
+                })
+                .catch(console.error);
+        }
+
+        // Fetch Window History
+        function fetchWindowHistory() {
+            fetch(WINDOW_HISTORY_URL)
+                .then(response => response.json())
+                .then(data => {
+                    const historyDiv = document.getElementById("window-history");
+                    historyDiv.innerHTML = "";
+                    data.forEach(entry => {
+                        historyDiv.innerHTML += `
+                            <div class="entry">
+                                <p><strong>Operation:</strong> ${entry.operation}</p>
+                                <p><strong>Details:</strong> ${entry.details}</p>
+                                <p class="timestamp"><strong>Timestamp:</strong> ${entry.timestamp}</p>
+                            </div>
+                        `;
+                    });
+                })
+                .catch(console.error);
+        }
+
+        // Fetch Sensor History
+        function fetchSensorHistory() {
+            fetch(SENSOR_HISTORY_URL)
+                .then(response => response.json())
+                .then(data => {
+                    const historyDiv = document.getElementById("sensor-history");
+                    historyDiv.innerHTML = "";
+                    data.forEach(entry => {
+                        historyDiv.innerHTML += `
+                            <div class="entry">
+                                <p><strong>Operation:</strong> ${entry.operation}</p>
+                                <p><strong>Details:</strong> ${entry.details}</p>
+                                <p class="timestamp"><strong>Timestamp:</strong> ${entry.timestamp}</p>
+                            </div>
+                        `;
+                    });
+                })
+                .catch(console.error);
+        }
+
+        // Clear All History
+        function clearHistory() {
+            if (!confirm("Are you sure you want to clear all history?")) return;
+
+            Promise.all([
+                fetch(DELETE_ROOM_HISTORY_URL, { method: "DELETE" }),
+                fetch(DELETE_WINDOW_HISTORY_URL, { method: "DELETE" }),
+                fetch(DELETE_SENSOR_HISTORY_URL, { method: "DELETE" }),
+            ])
+                .then(() => {
+                    fetchRoomHistory();
+                    fetchWindowHistory();
+                    fetchSensorHistory();
+                    alert("All history cleared successfully.");
+                })
+                .catch(console.error);
+        }
+
+        function navigateToIndex() {
+            window.location.href = "/";
+        }
+    </script>
+</body>
+</html>
