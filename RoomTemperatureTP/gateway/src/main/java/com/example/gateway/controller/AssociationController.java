@@ -10,7 +10,7 @@ import java.util.*;
 public class AssociationController {
 
     private final Map<String, List<String>> roomToWindowsMap = new HashMap<>();
-    private final Map<String, List<String>> windowToSensorsMap = new HashMap<>();
+    private final Map<String, List<String>> roomToSensorsMap = new HashMap<>();
 
     // === ASSOCIATION DES FENÊTRES AUX SALLES ===
 
@@ -33,13 +33,13 @@ public class AssociationController {
             return ResponseEntity.badRequest().body("Room does not exist");
         }
         roomToWindowsMap.remove(roomName);
+        roomToSensorsMap.remove(roomName); // Supprimer également les capteurs associés
         return ResponseEntity.ok("Room deleted successfully");
     }
 
     @DeleteMapping("/windows/{windowName}")
     public ResponseEntity<String> deleteWindow(@PathVariable String windowName) {
         roomToWindowsMap.forEach((room, windows) -> windows.remove(windowName));
-        windowToSensorsMap.remove(windowName);
         return ResponseEntity.ok("Window and its associations deleted successfully");
     }
 
@@ -51,8 +51,14 @@ public class AssociationController {
             return ResponseEntity.badRequest().body("Invalid room name or room does not exist");
         }
 
+        // Mettre à jour les fenêtres associées
         List<String> windows = roomToWindowsMap.remove(oldName);
         roomToWindowsMap.put(newName, windows);
+
+        // Mettre à jour les capteurs associés
+        List<String> sensors = roomToSensorsMap.remove(oldName);
+        roomToSensorsMap.put(newName, sensors);
+
         return ResponseEntity.ok("Room name updated successfully");
     }
 
@@ -71,51 +77,28 @@ public class AssociationController {
             }
         });
 
-        if (windowToSensorsMap.containsKey(oldName)) {
-            List<String> sensors = windowToSensorsMap.remove(oldName);
-            windowToSensorsMap.put(newName, sensors);
-        }
-
         return ResponseEntity.ok("Window name updated successfully");
     }
 
-    // === ASSOCIATION DES CAPTEURS AUX FENÊTRES ===
+    // === ASSOCIATION DES CAPTEURS AUX SALLES ===
 
     @PostMapping("/sensors")
-    public ResponseEntity<String> associateSensorToWindow(@RequestBody Map<String, String> request) {
-        String windowName = request.get("windowName");
-        String sensorName = request.get("sensorName");
+    public ResponseEntity<String> associateSensorToRoomByPosition(@RequestBody Map<String, String> request) {
+        String roomName = request.get("roomName");
+        String sensorPosition = request.get("sensorPosition");
 
-        if (windowName == null || sensorName == null) {
-            return ResponseEntity.badRequest().body("windowName and sensorName are required");
+        if (roomName == null || sensorPosition == null) {
+            return ResponseEntity.badRequest().body("roomName and sensorPosition are required");
         }
 
-        windowToSensorsMap.computeIfAbsent(windowName, k -> new ArrayList<>()).add(sensorName);
-        return ResponseEntity.ok("Sensor associated to window successfully");
+        roomToSensorsMap.computeIfAbsent(roomName, k -> new ArrayList<>()).add(sensorPosition);
+        return ResponseEntity.ok("Sensor associated to room by position successfully");
     }
 
-    @DeleteMapping("/sensors/{sensorName}")
-    public ResponseEntity<String> deleteSensor(@PathVariable String sensorName) {
-        windowToSensorsMap.forEach((window, sensors) -> sensors.remove(sensorName));
-        return ResponseEntity.ok("Sensor removed from associations successfully");
-    }
-
-    @PutMapping("/sensors/{oldName}")
-    public ResponseEntity<String> updateSensorName(@PathVariable String oldName, @RequestBody Map<String, String> request) {
-        String newName = request.get("name");
-
-        if (newName == null) {
-            return ResponseEntity.badRequest().body("Invalid sensor name");
-        }
-
-        windowToSensorsMap.forEach((window, sensors) -> {
-            if (sensors.contains(oldName)) {
-                sensors.remove(oldName);
-                sensors.add(newName);
-            }
-        });
-
-        return ResponseEntity.ok("Sensor name updated successfully");
+    @DeleteMapping("/sensors/{sensorPosition}")
+    public ResponseEntity<String> deleteSensorAssociation(@PathVariable String sensorPosition) {
+        roomToSensorsMap.forEach((room, sensors) -> sensors.remove(sensorPosition));
+        return ResponseEntity.ok("Sensor association removed successfully");
     }
 
     // === RECUPÉRER LES ASSOCIATIONS ===
@@ -126,22 +109,20 @@ public class AssociationController {
 
         roomToWindowsMap.forEach((roomName, windows) -> {
             List<Map<String, Object>> windowDetails = new ArrayList<>();
-            windows.forEach(window -> {
-                List<String> sensors = windowToSensorsMap.getOrDefault(window, new ArrayList<>());
-                Map<String, Object> windowInfo = new HashMap<>();
-                windowInfo.put("name", window);
-                windowInfo.put("sensors", sensors.stream().map(name -> Map.of("name", name)).toList());
-                windowDetails.add(windowInfo);
-            });
+            windows.forEach(window -> windowDetails.add(Map.of("name", window)));
+
+            List<String> sensors = roomToSensorsMap.getOrDefault(roomName, new ArrayList<>());
 
             Map<String, Object> assoc = new HashMap<>();
             assoc.put("room", Map.of("name", roomName));
             assoc.put("windows", windowDetails);
+            assoc.put("sensors", sensors.stream().map(position -> Map.of("position", position)).toList());
             result.add(assoc);
         });
 
         return ResponseEntity.ok(result);
     }
 }
+
 
 

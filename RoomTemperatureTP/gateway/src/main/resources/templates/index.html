@@ -56,6 +56,16 @@
         </form>
     </div>
 
+    <div>
+        <h2>Associate Sensors to Rooms</h2>
+        <form onsubmit="associateSensorToRoom(event)">
+            <select id="room-select-for-sensor" required></select>
+            <select id="sensor-position-select" required></select>
+            <button type="submit">Associate</button>
+        </form>
+    </div>
+    
+
     <!-- Lists -->
     <h2>Rooms</h2>
     <div id="room-list"></div>
@@ -93,8 +103,10 @@
                 .then(data => {
                     const roomList = document.getElementById("room-list");
                     const roomSelect = document.getElementById("room-select");
+                    const roomSelectForSensor = document.getElementById("room-select-for-sensor"); 
                     roomList.innerHTML = "";
                     roomSelect.innerHTML = "";
+                    roomSelectForSensor.innerHTML = "<option value='' disabled selected>Select a room</option>"; // Réinitialisation du menu
                     data.forEach(room => {
                         roomList.innerHTML += `
                             <div class="room">
@@ -103,7 +115,9 @@
                                 <button onclick="deleteRoom(${room.id})">Delete</button>
                             </div>
                         `;
-                        roomSelect.innerHTML += `<option value="${room.name}">${room.name}</option>`;
+                        const option = `<option value="${room.name}">${room.name}</option>`;
+                        roomSelect.innerHTML += option;
+                        roomSelectForSensor.innerHTML += option;
                     });
                 })
                 .catch(console.error);
@@ -181,18 +195,13 @@
         }
 
         function fetchAllSensors() {
-        fetch(`${SENSOR_URL}/all`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch sensors: ${response.statusText}`);
-                }
-                return response.json();
-            })
+            fetch(`${SENSOR_URL}/all`)
+            .then(response => response.json())
             .then(data => {
                 const sensorList = document.getElementById("sensor-list");
-                const sensorSelect = document.getElementById("sensor-select");
+                const sensorPositionSelect = document.getElementById("sensor-position-select");
                 sensorList.innerHTML = "";
-                sensorSelect.innerHTML = "";
+                sensorPositionSelect.innerHTML = "";
                 data.forEach(sensor => {
                     sensorList.innerHTML += `
                         <div class="sensor">
@@ -204,13 +213,12 @@
                             <button onclick="deleteSensor(${sensor.id})">Delete</button>
                         </div>
                     `;
-                    sensorSelect.innerHTML += `<option value="${sensor.name}">${sensor.name}</option>`;
+                    sensorPositionSelect.innerHTML += `<option value="${sensor.position}">${sensor.position}</option>`;
                 });
             })
-            .catch(error => {
-                console.error("Error fetching sensors:", error);
-            });
+            .catch(console.error);
     }
+
 
     function editSensor(id, oldName, oldValue, oldPosition) {
         const newName = prompt("Enter new name for the sensor:", oldName) || oldName;
@@ -330,7 +338,6 @@
                 .catch(console.error);
         }
 
-        // Fetch all associations
         function fetchAllAssociations() {
             fetch(ASSOCIATION_URL)
                 .then(response => response.json())
@@ -338,16 +345,40 @@
                     const associationList = document.getElementById("associations");
                     associationList.innerHTML = "";
                     data.forEach(assoc => {
+                        const windows = assoc.windows.map(w => `<div>Window: ${w.name}</div>`).join("");
+                        const sensors = assoc.sensors.map(s => `<div>Sensor Position: ${s.position}</div>`).join("");
                         associationList.innerHTML += `
                             <div class="association">
-                                <h3>${assoc.room.name}</h3>
-                                <p>Windows: ${assoc.windows.map(w => w.name).join(", ")}</p>
+                                <h3>Room: ${assoc.room.name}</h3>
+                                <div>Windows: ${windows}</div>
+                                <div>Sensors: ${sensors}</div>
                             </div>
                         `;
                     });
                 })
                 .catch(console.error);
         }
+
+
+        function associateSensorToRoom(event) {
+            event.preventDefault();
+            const roomName = document.getElementById("room-select-for-sensor").value;
+            const sensorPosition = document.getElementById("sensor-position-select").value;
+
+            if (!roomName || !sensorPosition) {
+                alert("Please select a room and a sensor position.");
+                return;
+            }
+
+            fetch(`${ASSOCIATION_URL}/sensors`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ roomName, sensorPosition })
+            })
+                .then(fetchAllAssociations)
+                .catch(console.error);
+        }
+
     </script>
 </body>
 </html>
