@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Window Management</title>
+</head>
+<body onload="fetchAllWindows()">
+    <h1>Window Management</h1>
+
+    <h2>Add a Window</h2>
+    <form onsubmit="addWindow(event)">
+        <input type="text" id="window-name" placeholder="Window Name" required>
+        <select id="window-state" required>
+            <option value="OPEN">Open</option>
+            <option value="CLOSED">Closed</option>
+        </select>
+        <button type="submit">Add Window</button>
+    </form>
+
+    <h2>Window List</h2>
+    <div id="window-list"></div>
+
+    <h2>Window Details</h2>
+    <div id="window-details"></div>
+
+    <script>
+        const BASE_URL = "/windows";
+
+        // Fetch all windows
+        function fetchAllWindows() {
+            fetch(BASE_URL)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById("window-list");
+                    container.innerHTML = data.map(window => `
+                        <div>
+                            <h3>${window.name}</h3>
+                            <p>State: ${window.windowState}</p>
+                            <button onclick="fetchWindowById(${window.id})">Details</button>
+                            <button onclick="deleteWindow(${window.id})">Delete</button>
+                        </div>
+                    `).join('');
+                })
+                .catch(console.error);
+        }
+
+        // Add a window
+        function addWindow(event) {
+            event.preventDefault();
+            const name = document.getElementById("window-name").value;
+            const state = document.getElementById("window-state").value;
+
+            fetch(BASE_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, windowState: state })
+            })
+                .then(response => response.json())
+                .then(() => {
+                    fetchAllWindows();
+                    document.getElementById("window-name").value = "";
+                    document.getElementById("window-state").value = "OPEN";
+                })
+                .catch(console.error);
+        }
+
+        // Fetch window by ID
+        function fetchWindowById(id) {
+            fetch(`${BASE_URL}/${id}`)
+                .then(response => response.json())
+                .then(window => {
+                    const container = document.getElementById("window-details");
+                    container.innerHTML = `
+                        <h3>${window.name}</h3>
+                        <p>State: ${window.windowState}</p>
+                        <form onsubmit="updateWindow(event, ${window.id})">
+                            <input type="text" id="update-window-name" value="${window.name}">
+                            <select id="update-window-state">
+                                <option value="OPEN" ${window.windowState === 'OPEN' ? 'selected' : ''}>Open</option>
+                                <option value="CLOSED" ${window.windowState === 'CLOSED' ? 'selected' : ''}>Closed</option>
+                            </select>
+                            <button type="submit">Update</button>
+                        </form>
+                    `;
+                })
+                .catch(console.error);
+        }
+
+        // Update a window
+        function updateWindow(event, id) {
+            event.preventDefault();
+            const name = document.getElementById("update-window-name").value;
+            const state = document.getElementById("update-window-state").value;
+
+            fetch(`${BASE_URL}/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, windowState: state })
+            })
+                .then(() => {
+                    fetchAllWindows();
+                    document.getElementById("window-details").innerHTML = "";
+                })
+                .catch(console.error);
+        }
+
+        // Delete a window
+        function deleteWindow(id) {
+            fetch(`${BASE_URL}/${id}`, { method: "DELETE" })
+                .then(() => fetchAllWindows())
+                .catch(console.error);
+        }
+    </script>
+</body>
+</html>
