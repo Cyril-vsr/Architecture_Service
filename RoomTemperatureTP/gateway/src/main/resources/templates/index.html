@@ -1,17 +1,43 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Room and Window Management</title>
     <style>
-        .room { border: 2px solid blue; margin: 10px; padding: 10px; border-radius: 10px; }
-        .window { border: 2px solid green; margin: 5px; padding: 5px; display: inline-block; border-radius: 5px; }
-        .association { border: 2px dashed orange; margin: 10px; padding: 10px; }
-        .navigation { margin: 20px; }
-        .navigation button { padding: 10px 20px; font-size: 16px; }
+        .room {
+            border: 2px solid blue;
+            margin: 10px;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .window {
+            border: 2px solid green;
+            margin: 5px;
+            padding: 5px;
+            display: inline-block;
+            border-radius: 5px;
+        }
+
+        .association {
+            border: 2px dashed orange;
+            margin: 10px;
+            padding: 10px;
+        }
+
+        .navigation {
+            margin: 20px;
+        }
+
+        .navigation button {
+            padding: 10px 20px;
+            font-size: 16px;
+        }
     </style>
 </head>
+
 <body onload="initialize()">
 
     <div class="navigation">
@@ -34,9 +60,9 @@
         <h2>Add a Window</h2>
         <form onsubmit="addWindow(event)">
             <input type="text" id="window-name" placeholder="Window Name" required>
-            <select id="room-select-for-window" required>
-                <option value="">Select Room</option>
-                <!-- Options will be populated dynamically -->
+            <select id="window-state" required>
+                <option value="OPEN">Open</option>
+                <option value="CLOSED">Closed</option>
             </select>
             <button type="submit">Add Window</button>
         </form>
@@ -53,37 +79,30 @@
         </form>
     </div>
 
-    <!-- Associate Windows to Rooms -->
+    <!-- Associate -->
     <div>
         <h2>Associate Windows to Rooms</h2>
         <form onsubmit="associateWindowToRoom(event)">
-            <select id="room-select" required>
-                <option value="">Select Room</option>
-                <!-- Options will be populated dynamically -->
+            <select id="room-select" required></select>
+            <select id="window-select" required></select>
+            <button type="submit">Associate</button>
+        </form>
+    </div>
+
+    <div>
+        <h2>Associate Sensors to Windows</h2>
+        <form onsubmit="associateSensorToWindow(event)">
+            <select id="window-select-for-sensor" required>
+                <option value="" disabled selected>Select a window</option>
             </select>
-            <select id="window-select" required>
-                <option value="">Select Window</option>
-                <!-- Options will be populated dynamically -->
+            <select id="sensor-select" required>
+                <option value="" disabled selected>Select a sensor</option>
             </select>
             <button type="submit">Associate</button>
         </form>
     </div>
 
-    <!-- Associate Sensors to Rooms -->
-    <div>
-        <h2>Associate Sensors to Rooms</h2>
-        <form onsubmit="associateSensorToRoom(event)">
-            <select id="room-select-for-sensor" required>
-                <option value="">Select Room</option>
-                <!-- Options will be populated dynamically -->
-            </select>
-            <select id="sensor-select" required>
-                <option value="">Select Sensor</option>
-                <!-- Options will be populated dynamically -->
-            </select>
-            <button type="submit">Associate</button>
-        </form>
-    </div>
+
 
     <!-- Lists -->
     <h2>Rooms</h2>
@@ -100,180 +119,361 @@
     <h2>Room-Window Associations</h2>
     <div id="associations"></div>
 
-    <script>
-        const ROOM_URL = "http://localhost:8083/rooms";
-        const WINDOW_URL = "http://localhost:8082/windows";
-        const SENSOR_URL = "http://localhost:8081/sensors";
-        const ASSOCIATION_URL = "http://localhost:8080/associations";
+    <div>
+        <h2>View Associations by Room</h2>
+        <select id="room-association-select" onchange="handleRoomAssociationSelect(this.value)">
+            <!-- Options populated dynamically -->
+        </select>
+    </div>
 
-        function initialize() {
+
+    <script>
+        const ROOM_URL = "/rooms";
+        const WINDOW_URL = "/windows";
+        const SENSOR_URL = "sensors";
+        const ASSOCIATION_URL = "/associations";
+
+        async function initialize() {
             fetchAllRooms();
             fetchAllWindows();
             fetchAllSensors();
+            fetchAllAssociations();
+
+            setInterval(fetchAllSensors, 5000);
         }
 
+        // Fetch all rooms
         function fetchAllRooms() {
             fetch(ROOM_URL)
                 .then(response => response.json())
-                .then(rooms => {
-                    const roomSelectForWindow = document.getElementById("room-select-for-window");
-                    const roomSelectForSensor = document.getElementById("room-select-for-sensor");
+                .then(data => {
+                    const roomList = document.getElementById("room-list");
                     const roomSelect = document.getElementById("room-select");
-                    roomSelectForWindow.innerHTML = '<option value="">Select Room</option>';
-                    roomSelectForSensor.innerHTML = '<option value="">Select Room</option>';
-                    roomSelect.innerHTML = '<option value="">Select Room</option>';
-                    rooms.forEach(room => {
-                        const option = document.createElement("option");
-                        option.value = room.id;
-                        option.textContent = room.name;
-                        roomSelectForWindow.appendChild(option);
-                        roomSelectForSensor.appendChild(option.cloneNode(true));
-                        roomSelect.appendChild(option.cloneNode(true));
+                    const windowSelectForSensor = document.getElementById("window-select-for-sensor");
+                    const roomAssociationSelect = document.getElementById("room-association-select"); // New dropdown
+
+                    roomList.innerHTML = "";
+                    roomSelect.innerHTML = "";
+                    windowSelectForSensor.innerHTML = "<option value='' disabled selected>Select a room</option>";
+                    roomAssociationSelect.innerHTML = "<option value='' disabled selected>Select a room to view associations</option>";
+
+                    data.forEach(room => {
+                        roomList.innerHTML += `
+                    <div class="room">
+                        <h3>${room.name}</h3>
+                        <button onclick="editRoom(${room.id}, '${room.name}')">Edit</button>
+                        <button onclick="deleteRoom(${room.id})">Delete</button>
+                    </div>
+                `;
+
+                        const option = `<option value="${room.id}">${room.name}</option>`;
+                        roomSelect.innerHTML += option;
+                        windowSelectForSensor.innerHTML += option;
+                        roomAssociationSelect.innerHTML += option;
                     });
                 })
+                .catch(console.error);
+        }
+
+        // Add a room
+        function addRoom(event) {
+            event.preventDefault();
+            const name = document.getElementById("room-name").value;
+            fetch(ROOM_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name })
+            })
+                .then(fetchAllRooms)
+                .catch(console.error);
+        }
+
+        // Edit a room
+        function editRoom(id, oldName) {
+            const newName = prompt("Enter new name for the room:", oldName);
+            if (!newName || newName === oldName) return;
+
+            fetch(`${ROOM_URL}/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: newName })
+            })
+                .then(() => {
+                    // Mettre à jour le nom dans les associations
+                    fetch(`${ASSOCIATION_URL}/rooms/${oldName}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name: newName })
+                    })
+                        .then(fetchAllRooms)
+                        .then(fetchAllAssociations)
+                        .catch(console.error);
+                })
+                .catch(console.error);
+        }
+
+        // Delete a room
+        function deleteRoom(id) {
+            if (!confirm("Are you sure you want to delete this room?")) return;
+
+            fetch(`${ROOM_URL}/${id}`, { method: "DELETE" })
+                .then(fetchAllRooms)
+                .then(fetchAllAssociations)
                 .catch(console.error);
         }
 
         function fetchAllWindows() {
             fetch(WINDOW_URL)
                 .then(response => response.json())
-                .then(windows => {
-                    const windowSelectForSensor = document.getElementById("window-select-for-sensor");
+                .then(data => {
+                    const windowList = document.getElementById("window-list");
                     const windowSelect = document.getElementById("window-select");
-                    windowSelectForSensor.innerHTML = '<option value="">Select Window</option>';
-                    windowSelect.innerHTML = '<option value="">Select Window</option>';
-                    windows.forEach(window => {
-                        const option = document.createElement("option");
-                        option.value = window.id;
-                        option.textContent = window.name;
-                        windowSelectForSensor.appendChild(option);
-                        windowSelect.appendChild(option.cloneNode(true));
+                    const windowSelectForSensor = document.getElementById("window-select-for-sensor");
+
+                    windowList.innerHTML = "";
+                    windowSelect.innerHTML = "<option value='' disabled selected>Select a window</option>";
+                    windowSelectForSensor.innerHTML = "<option value='' disabled selected>Select a window</option>";
+
+                    data.forEach(window => {
+                        windowList.innerHTML += `
+                    <div class="window">
+                        <h3>${window.name}</h3>
+                        <p>State: ${window.windowState}</p>
+                        <button onclick="editWindow(${window.id}, '${window.name}', '${window.windowState}')">Edit</button>
+                        <button onclick="deleteWindow(${window.id})">Delete</button>
+                    </div>
+                `;
+                        const option = `<option value="${window.id}">${window.name}</option>`;
+                        windowSelect.innerHTML += option;
+                        windowSelectForSensor.innerHTML += option; // Correctly populating the sensor-window dropdown
                     });
                 })
                 .catch(console.error);
         }
+
 
         function fetchAllSensors() {
-            fetch(SENSOR_URL)
+            fetch(`${SENSOR_URL}/all`)
                 .then(response => response.json())
-                .then(sensors => {
+                .then(data => {
+                    const sensorList = document.getElementById("sensor-list");
                     const sensorSelect = document.getElementById("sensor-select");
-                    sensorSelect.innerHTML = '<option value="">Select Sensor</option>';
-                    sensors.forEach(sensor => {
-                        const option = document.createElement("option");
-                        option.value = sensor.id;
-                        option.textContent = sensor.name;
-                        sensorSelect.appendChild(option);
+
+                    sensorList.innerHTML = "";
+                    sensorSelect.innerHTML = "<option value='' disabled selected>Select a sensor</option>";
+
+                    data.forEach(sensor => {
+                        sensorList.innerHTML += `
+                    <div class="sensor">
+                        <h3>${sensor.name}</h3>
+                        <p>ID: ${sensor.id}</p>
+                        <p>Value: ${sensor.value}</p>
+                        <p>Position: ${sensor.position}</p>
+                        <button onclick="editSensor(${sensor.id}, '${sensor.name}', ${sensor.value}, '${sensor.position}')">Edit</button>
+                        <button onclick="deleteSensor(${sensor.id})">Delete</button>
+                    </div>
+                `;
+                        sensorSelect.innerHTML += `<option value="${sensor.id}">${sensor.name}</option>`;
                     });
                 })
                 .catch(console.error);
         }
 
-        function addRoom(event) {
-            event.preventDefault();
-            const roomName = document.getElementById("room-name").value;
 
-            fetch(ROOM_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: roomName })
-            })
-                .then(fetchAllRooms)
+        function editSensor(id, oldName, oldValue, oldPosition) {
+            const newName = prompt("Enter new name for the sensor:", oldName) || oldName;
+            const newValue = prompt("Enter new value for the sensor:", oldValue) || oldValue;
+            const newPosition = prompt("Enter new position for the sensor:", oldPosition) || oldPosition;
+
+            fetch(`${SENSOR_URL}/set-position/${id}?position=${newPosition}`, { method: "POST" })
+                .then(() => {
+                    fetch(`${SENSOR_URL}/send-data/${id}?value=${newValue}`, { method: "POST" });
+                })
+                .then(fetchAllSensors)
                 .catch(console.error);
         }
 
-        function addWindow(event) {
-            event.preventDefault();
-            const windowName = document.getElementById("window-name").value;
-            const roomId = document.getElementById("room-select-for-window").value;
+        function deleteSensor(id) {
+            if (!confirm("Are you sure you want to delete this sensor?")) return;
 
-            fetch(WINDOW_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: windowName, roomId: roomId })
-            })
-                .then(fetchAllWindows)
+            fetch(`${SENSOR_URL}/delete/${id}`, { method: "DELETE" })
+                .then(fetchAllSensors)
                 .catch(console.error);
         }
 
         function addSensor(event) {
             event.preventDefault();
-            const sensorName = document.getElementById("sensor-name").value;
-            const sensorValue = document.getElementById("sensor-value").value;
-            const sensorPosition = document.getElementById("sensor-position").value;
-            const windowId = document.getElementById("window-select-for-sensor").value;
+            const name = document.getElementById("sensor-name").value;
+            const value = document.getElementById("sensor-value").value || 0; // Valeur par défaut si non spécifiée
+            const position = document.getElementById("sensor-position").value;
 
-            fetch(SENSOR_URL, {
+            fetch(`${SENSOR_URL}/add`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: sensorName, value: sensorValue, position: sensorPosition, windowId: windowId })
+                body: JSON.stringify({ name, value, position })
             })
-                .then(fetchAllSensors)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to add sensor: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(() => {
+                    document.getElementById("sensor-name").value = "";
+                    document.getElementById("sensor-value").value = "";
+                    document.getElementById("sensor-position").value = "";
+                    fetchAllSensors(); // Rafraîchir la liste des capteurs
+                })
+                .catch(error => {
+                    console.error("Error adding sensor:", error);
+                    alert("Failed to add sensor. Please try again.");
+                });
+        }
+
+
+
+
+
+        // Add a window
+        function addWindow(event) {
+            event.preventDefault();
+            const name = document.getElementById("window-name").value;
+            const state = document.getElementById("window-state").value;
+            fetch(WINDOW_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, windowState: state })
+            })
+                .then(fetchAllWindows)
                 .catch(console.error);
         }
 
+        // Edit a window
+        function editWindow(id, oldName, oldState) {
+            const newName = prompt("Enter new name for the window:", oldName);
+            const newState = prompt("Enter new state (OPEN/CLOSED):", oldState);
+            if (!newName || !newState || (newName === oldName && newState === oldState)) return;
+
+            fetch(`${WINDOW_URL}/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: newName, windowState: newState })
+            })
+                .then(() => {
+                    // Mettre à jour le nom dans les associations
+                    fetch(`${ASSOCIATION_URL}/windows/${oldName}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name: newName })
+                    })
+                        .then(fetchAllWindows)
+                        .then(fetchAllAssociations)
+                        .catch(console.error);
+                })
+                .catch(console.error);
+        }
+
+        // Delete a window
+        function deleteWindow(id) {
+            if (!confirm("Are you sure you want to delete this window?")) return;
+
+            fetch(`${WINDOW_URL}/${id}`, { method: "DELETE" })
+                .then(fetchAllWindows)
+                .then(fetchAllAssociations)
+                .catch(console.error);
+        }
+
+        // Associate a window to a room
         function associateWindowToRoom(event) {
             event.preventDefault();
             const roomId = document.getElementById("room-select").value;
             const windowId = document.getElementById("window-select").value;
-
-            if (!roomId || !windowId) {
-                alert("Please select a room and a window.");
-                return;
-            }
-
             fetch(`${ASSOCIATION_URL}/windows`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ roomId, windowId })
+                body: JSON.stringify({ roomId: parseInt(roomId), windowId: parseInt(windowId) })
             })
                 .then(fetchAllAssociations)
                 .catch(console.error);
         }
 
-        function associateSensorToRoom(event) {
-            event.preventDefault();
-            const roomId = document.getElementById("room-select-for-sensor").value;
-            const sensorId = document.getElementById("sensor-select").value;
-
-            if (!roomId || !sensorId) {
-                alert("Please select a room and a sensor.");
-                return;
-            }
-
-            fetch(`${ASSOCIATION_URL}/sensors`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ roomId, sensorId })
-            })
-                .then(fetchAllAssociations)
-                .catch(console.error);
-        }
-
-        function navigateToHistory() {
-            window.location.href = "historic";
-        }
-
+        // Fetch all associations
         function fetchAllAssociations() {
-            fetch(ASSOCIATION_URL)
+            fetch(ASSOCIATION_URL) // Fetch all associations
                 .then(response => response.json())
                 .then(data => {
                     const associationList = document.getElementById("associations");
-                    associationList.innerHTML = "";
+                    associationList.innerHTML = ""; // Clear the current list
+
+                    // Iterate through the list of associations
                     data.forEach(assoc => {
-                        const windows = assoc.windows.map(w => `<div>Window: ${w.name}</div>`).join("");
-                        const sensors = assoc.sensors.map(s => `<div>Sensor Position: ${s.position}</div>`).join("");
+                        const windows = assoc.windows.map(w => `
+                            <div>
+                                Window ID: ${w.id}, Sensors: ${w.sensors.map(s => s.id).join(", ")}
+                            </div>`).join("");
+
+                        // Build the association display
                         associationList.innerHTML += `
                             <div class="association">
-                                <h3>Room: ${assoc.room.name}</h3>
-                                <div>Windows: ${windows}</div>
-                                <div>Sensors: ${sensors}</div>
+                                <h3>Room ID: ${assoc.room.id}</h3>
+                                ${windows}
                             </div>
                         `;
                     });
                 })
                 .catch(console.error);
         }
+
+        // Fetch associations by room ID
+        function fetchAssociationsByRoomId(roomId) {
+            fetch(`${ASSOCIATION_URL}/${roomId}`) // Fetch associations for a specific room
+                .then(response => response.json())
+                .then(data => {
+                    const associationList = document.getElementById("associations");
+                    associationList.innerHTML = ""; // Clear the current list
+
+                    const windows = data.windows.map(w => `
+                        <div>
+                            Window ID: ${w.id}, Sensors: ${w.sensors.map(s => s.id).join(", ")}
+                        </div>`).join("");
+
+                    // Build the association display
+                    associationList.innerHTML += `
+                        <div class="association">
+                            <h3>Room ID: ${data.room.id}</h3>
+                            ${windows}
+                        </div>
+                    `;
+                })
+                .catch(console.error);
+        }
+
+
+        function associateSensorToWindow(event) {
+            event.preventDefault();
+            const windowId = document.getElementById("window-select-for-sensor").value;
+            const sensorId = document.getElementById("sensor-select").value;
+            fetch(`${ASSOCIATION_URL}/sensors`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ windowId: parseInt(windowId), sensorId: parseInt(sensorId) })
+            })
+                .then(fetchAllAssociations)
+                .catch(console.error);
+        }
+
+        function handleRoomAssociationSelect(roomId) {
+            if (!roomId) return; // Do nothing if no room is selected
+            fetchAssociationsByRoomId(roomId); // Fetch associations for the selected room
+        }
+
+        function navigateToHistory() {
+            window.location.href = "historic";
+        }
+
+
+
     </script>
 </body>
+
 </html>
