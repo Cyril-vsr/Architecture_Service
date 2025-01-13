@@ -2,6 +2,7 @@ package com.example.gateway.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,7 +31,7 @@ public class TemperatureController {
 
         for (Long roomId : roomIds) {
             Map<String, Object> associations = fetchAssociationsByRoomId(roomId);
-            double temperature = fetchRoomTemperature(roomId, associations);
+            double temperature = fetchRoomTemperature(associations);
             List<Long> windowIds = fetchRoomWindows(associations);
 
             if (temperature > 25.0) {
@@ -53,7 +54,7 @@ public class TemperatureController {
 
     private Map<String, Object> fetchAssociationsByRoomId(Long roomId) {
         ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-            ASSOCIATION_SERVICE_URL + "/associations/" + roomId,
+            ASSOCIATION_SERVICE_URL + "/" + roomId,
             HttpMethod.GET,
             null,
             new ParameterizedTypeReference<Map<String, Object>>() {}
@@ -61,14 +62,14 @@ public class TemperatureController {
         return response.getBody();
     }
 
-    private double fetchRoomTemperature(Long roomId, Map<String, Object> associations) {
+    private double fetchRoomTemperature(Map<String, Object> associations) {
         List<Long> sensorIds = (List<Long>) associations.get("sensors");
         double totalTemperature = 0.0;
         int sensorCount = 0;
 
         for (Long sensorId : sensorIds) {
             ResponseEntity<Double> response = restTemplate.exchange(
-                SENSOR_SERVICE_URL + "/sensors/" + sensorId + "/temperature",
+                SENSOR_SERVICE_URL + "/get/" + sensorId,
                 HttpMethod.GET,
                 null,
                 Double.class
@@ -87,9 +88,9 @@ public class TemperatureController {
     private void openWindows(List<Long> windowIds) {
         for (Long windowId : windowIds) {
             restTemplate.exchange(
-                WINDOW_SERVICE_URL + "/" + windowId + "/open",
-                HttpMethod.POST,
-                null,
+                WINDOW_SERVICE_URL + "/" + windowId,
+                HttpMethod.PUT,
+                new HttpEntity<>(Map.of("windowState", "open")),
                 Void.class
             );
         }
@@ -98,9 +99,9 @@ public class TemperatureController {
     private void closeWindows(List<Long> windowIds) {
         for (Long windowId : windowIds) {
             restTemplate.exchange(
-                WINDOW_SERVICE_URL + "/" + windowId + "/close",
-                HttpMethod.POST,
-                null,
+                WINDOW_SERVICE_URL + "/" + windowId,
+                HttpMethod.PUT,
+                new HttpEntity<>(Map.of("windowState", "closed")),
                 Void.class
             );
         }
