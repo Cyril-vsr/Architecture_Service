@@ -127,25 +127,19 @@
         </select>
     </div>
 
-    <h2>Room Monitoring Status</h2>
-    <div id="status-list"></div>
-
     <script>
         const ROOM_URL = "/rooms";
         const WINDOW_URL = "/windows";
         const SENSOR_URL = "sensors";
         const ASSOCIATION_URL = "/associations";
-        const STATUS_URL = "/temperature/status";
 
         async function initialize() {
             fetchAllRooms();
             fetchAllWindows();
             fetchAllSensors();
             fetchAllAssociations();
-            fetchRoomStatus();
 
             setInterval(fetchAllSensors, 5000);
-            setInterval(fetchRoomStatus, 5000);
         }
 
         function fetchAllRooms() {
@@ -168,6 +162,7 @@
                         <h3>${room.name}</h3>
                         <button onclick="editRoom(${room.id}, '${room.name}')">Edit</button>
                         <button onclick="deleteRoom(${room.id})">Delete</button>
+                        <div id="room-${room.id}-temperature" class="temperature-status"></div>
                     </div>
                 `;
 
@@ -176,6 +171,7 @@
                         roomSelectForSensors.innerHTML += option;
                         roomAssociationSelect.innerHTML += option;
                     });
+                    fetchAllAssociations();
                 })
                 .catch(console.error);
         }
@@ -415,12 +411,12 @@
                         const sensors = assoc.windows.flatMap(w => w.sensors.map(s => s.id));
                         const uniqueSensors = [...new Set(sensors)];
 
-                        // Display windows for the room
                         const windows = assoc.windows.map(w => `
-                    <div>
-                        <p>Window ID: ${w.id}</p>
-                    </div>
-                `).join("");
+                            <div>
+                                <p>Window ID: ${w.id}</p>
+                                <p>State: ${w.state}</p>
+                            </div>
+                        `).join("");
 
                         // Build the association display
                         associationList.innerHTML += `
@@ -484,48 +480,26 @@
             window.location.href = "historic";
         }
 
-        function fetchRoomStatus() {
-            fetch(STATUS_URL)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Failed to fetch room status: ${response.statusText}`);
-                    }
-                    return response.json();
-                })
+        function fetchSensorData(sensorIds) {
+            return fetch(`/sensors/data`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sensorIds })
+            })
+                .then(response => response.json())
                 .then(data => {
-                    const statusList = document.getElementById("status-list");
-                    statusList.innerHTML = "";
-                    
-                    data.forEach(room => {
-                        // Générer la liste des fenêtres et leurs états
-                        const windows = room.windows.map(w => `
-                    <div>Window ID: ${w.id}, State: ${w.state}</div>
-                `).join("");
-
-                        // Ajouter les détails de la pièce
-                        statusList.innerHTML += `
-                    <div class="room">
-                        <h3>Room ID: ${room.roomId}</h3>
-                        <p>Temperature: ${room.temperature.toFixed(1)}°C</p>
-                        <div>Windows:</div>
-                        ${windows}
-                    </div>
-                `;
-                    });
-                })
-                .catch(error => {
-                    console.error("Error fetching room status:", error); // Log the error
+                    const validValues = data.values.filter(v => !isNaN(v));
+                    if (validValues.length > 0) {
+                        return validValues.reduce((a, b) => a + b, 0) / validValues.length;
+                    } else {
+                        return null;
+                    }
                 });
         }
 
-
-
-
-
-
-
-
-
+        function navigateToHistory() {
+            window.location.href = "historic";
+        }
     </script>
 </body>
 
