@@ -139,7 +139,8 @@
             fetchAllSensors();
             fetchAllAssociations();
 
-            setInterval(fetchAllSensors, 5000);
+            setInterval(fetchAllSensors, 15000);
+            setInterval(checkRoomTemperatures, 5000);
         }
 
         function fetchAllRooms() {
@@ -175,6 +176,49 @@
                 })
                 .catch(console.error);
         }
+
+        function checkRoomTemperatures() {
+            fetch(ASSOCIATION_URL)
+                .then(response => response.json())
+                .then(associations => {
+                    associations.forEach(assoc => {
+                        const roomId = assoc.room.id; // ID de la pièce
+                        const windows = assoc.windows; // Liste des fenêtres associées
+
+                        // Trouver le premier capteur associé à une fenêtre
+                        const sensor = assoc.windows.flatMap(w => w.sensors || [])[0];
+
+                        if (sensor) {
+                            const sensorValue = parseFloat(sensor.value || 0);
+
+                            // Debug : Afficher la valeur du capteur
+                            console.log(`Room ID: ${roomId}, Sensor ID: ${sensor.id}, Value: ${sensorValue}`);
+
+                            const desiredState = sensorValue > 21 ? "OPEN" : "CLOSED";
+
+                            // Parcourir chaque fenêtre et mettre à jour son état si nécessaire
+                            windows.forEach(window => {
+                                console.log(`Window ID: ${window.id}, Current State: ${window.windowState}, Desired State: ${desiredState}`);
+
+                                if (window.windowState !== desiredState) {
+                                    console.log(`Updating Window ID: ${window.id} to ${desiredState}`);
+                                    editWindow(window.id, null, desiredState); // Met à jour uniquement l'état
+                                }
+                            });
+                        } else {
+                            // Debug : Aucun capteur associé
+                            console.warn(`No sensor found for Room ID: ${roomId}`);
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error("Error fetching associations or processing temperatures:", error);
+                });
+        }
+
+
+
+
 
 
         // Add a room
@@ -348,29 +392,38 @@
         }
 
         // Edit a window
-        function editWindow(id, oldName, oldState) {
-            const newName = prompt("Enter new name for the window:", oldName);
-            const newState = prompt("Enter new state (OPEN/CLOSED):", oldState);
-            if (!newName || !newState || (newName === oldName && newState === oldState)) return;
-
-            fetch(`${WINDOW_URL}/${id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: newName, windowState: newState })
-            })
-                .then(() => {
-                    // Mettre à jour le nom dans les associations
-                    fetch(`${ASSOCIATION_URL}/windows/${oldName}`, {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ name: newName })
-                    })
-                        .then(fetchAllWindows)
-                        .then(fetchAllAssociations)
-                        .catch(console.error);
+        function editWindow(id, oldState = null, newState = null) {
+            if (newState) {
+                // Cas de modification depuis checkRoomTemperatures (mise à jour automatique de l'état uniquement)
+                fetch(`${WINDOW_URL}/${id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ windowState: newState }) // Passe uniquement l'état
                 })
-                .catch(console.error);
+                    .then(() => {
+                        console.log(`Window ID ${id} updated to state: ${newState}`);
+                        fetchAllWindows();
+                        fetchAllAssociations();
+                    })
+                    .catch(console.error);
+            } else {
+                // Cas de modification via l'utilisateur (état et/ou autre modification)
+                const newWindowState = prompt("Enter new state (OPEN/CLOSED):", oldState) || oldState;
+                if (!newWindowState || newWindowState === oldState) return;
+
+                fetch(`${WINDOW_URL}/${id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ windowState: newWindowState }) // Passe uniquement l'état
+                })
+                    .then(() => {
+                        fetchAllWindows();
+                        fetchAllAssociations();
+                    })
+                    .catch(console.error);
+            }
         }
+
 
         // Delete a window
         function deleteWindow(id) {
@@ -433,7 +486,7 @@
         }
 
 
-       // Fetch associations by room ID
+        // Fetch associations by room ID
         function fetchAssociationsByRoomId(roomId) {
             fetch(`${ASSOCIATION_URL}/${roomId}`) // Fetch associations for a specific room
                 .then(response => {
@@ -495,23 +548,6 @@
 
         function navigateToHistory() {
             window.location.href = "historic";
-        }
-
-        function fetchSensorData(sensorIds) {
-            return fetch(`/sensors/data`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ sensorIds })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    const validValues = data.values.filter(v => !isNaN(v));
-                    if (validValues.length > 0) {
-                        return validValues.reduce((a, b) => a + b, 0) / validValues.length;
-                    } else {
-                        return null;
-                    }
-                });
         }
 
         function navigateToHistory() {

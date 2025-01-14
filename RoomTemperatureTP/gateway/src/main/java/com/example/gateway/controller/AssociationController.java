@@ -1,7 +1,6 @@
 package com.example.gateway.controller;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -12,8 +11,6 @@ public class AssociationController {
 
     private final Map<Long, List<Long>> roomToWindowsMap = new HashMap<>();
     private final Map<Long, List<Long>> windowToSensorsMap = new HashMap<>();
-    private final Map<Long, Double> sensorValues = new HashMap<>(); // Mock for sensor values
-    private final Map<Long, String> windowStates = new HashMap<>(); // Track window states
 
     // === ASSOCIATION DES FENÊTRES AUX SALLES ===
 
@@ -52,7 +49,6 @@ public class AssociationController {
         List<Long> windows = roomToWindowsMap.remove(roomId);
         if (windows != null) {
             for (Long windowId : windows) {
-                windowStates.remove(windowId);
                 windowToSensorsMap.remove(windowId);
             }
         }
@@ -63,7 +59,6 @@ public class AssociationController {
     @DeleteMapping("/windows/{windowId}")
     public ResponseEntity<String> deleteWindow(@PathVariable Long windowId) {
         roomToWindowsMap.forEach((room, windows) -> windows.remove(windowId));
-        windowStates.remove(windowId);
         windowToSensorsMap.remove(windowId);
         return ResponseEntity.ok("Window and its associations deleted successfully");
     }
@@ -80,7 +75,6 @@ public class AssociationController {
                 List<Long> sensors = windowToSensorsMap.getOrDefault(roomId, new ArrayList<>());
                 Map<String, Object> windowInfo = new HashMap<>();
                 windowInfo.put("id", windowId);
-                windowInfo.put("state", windowStates.get(windowId));
                 windowInfo.put("sensors", sensors.stream().map(id -> Map.of("id", id)).toList());
                 windowDetails.add(windowInfo);
             });
@@ -115,69 +109,5 @@ public class AssociationController {
     }
 
     // === GESTION AUTOMATIQUE DES FENÊTRES ===
-    @Scheduled(fixedRate = 10000)
-    public void manageWindowStates() {
-        roomToWindowsMap.forEach((roomId, windows) -> {
-            List<Long> sensors = windowToSensorsMap.getOrDefault(roomId, new ArrayList<>());
-
-            if (sensors.isEmpty()) {
-                return; // Pas de capteurs associés, garder l'état des fenêtres inchangé
-            }
-
-            // Calculer la moyenne des valeurs des capteurs
-            double averageTemperature = sensors.stream()
-                    .mapToDouble(sensorId -> sensorValues.getOrDefault(sensorId, Double.NaN))
-                    .filter(value -> !Double.isNaN(value))
-                    .average()
-                    .orElse(Double.NaN);
-
-                    if (Double.isNaN(averageTemperature)) {
-                        System.out.println("No valid sensor data for room: " + roomId);
-                        return; // Ne pas modifier l'état des fenêtres
-                    }
-                    
-
-            // Ajuster l'état des fenêtres en fonction de la température moyenne
-            String newState = null;
-            if (averageTemperature < 20) {
-                newState = "CLOSED";
-            } else if (averageTemperature > 21) {
-                newState = "OPEN";
-            }
-
-            if (newState != null) {
-                for (Long windowId : windows) {
-                    windowStates.put(windowId, newState);
-                }
-            }
-        });
-    }
-
-    @PutMapping("/windows/{id}/state")
-    public ResponseEntity<String> updateWindowState(@PathVariable Long id, @RequestBody Map<String, String> request) {
-        String newState = request.get("state");
-        if (newState == null || (!newState.equals("OPEN") && !newState.equals("CLOSED"))) {
-            return ResponseEntity.badRequest().body("Invalid state");
-        }
-
-        if (!windowStates.containsKey(id)) {
-            return ResponseEntity.badRequest().body("Window not found");
-        }
-
-        windowStates.put(id, newState);
-        return ResponseEntity.ok("Window state updated successfully");
-    }
-
-    @PostMapping("/sensors/data")
-    public ResponseEntity<String> updateSensorValue(@RequestBody Map<String, Object> request) {
-        Long sensorId = ((Number) request.get("sensorId")).longValue();
-        Double value = ((Number) request.get("value")).doubleValue();
-
-        if (sensorId == null || value == null) {
-            return ResponseEntity.badRequest().body("sensorId and value are required");
-        }
-
-        sensorValues.put(sensorId, value);
-        return ResponseEntity.ok("Sensor value updated successfully");
-    }
+   
 }
