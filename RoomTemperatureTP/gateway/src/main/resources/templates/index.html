@@ -437,29 +437,46 @@
         }
 
 
-        // Fetch associations by room ID
+       // Fetch associations by room ID
         function fetchAssociationsByRoomId(roomId) {
             fetch(`${ASSOCIATION_URL}/${roomId}`) // Fetch associations for a specific room
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch association for Room ID: ${roomId}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     const associationList = document.getElementById("associations");
                     associationList.innerHTML = ""; // Clear the current list
 
+                    // Sensors for the room
+                    const sensors = data.windows.flatMap(w => w.sensors.map(s => s.id));
+                    const uniqueSensors = [...new Set(sensors)];
+
+                    // Windows for the room
                     const windows = data.windows.map(w => `
                         <div>
-                            Window ID: ${w.id}, Sensors: ${w.sensors.map(s => s.id).join(", ")}
-                        </div>`).join("");
+                            <p>Window ID: ${w.id}</p>
+                        </div>
+                    `).join("");
 
                     // Build the association display
                     associationList.innerHTML += `
                         <div class="association">
                             <h3>Room ID: ${data.room.id}</h3>
+                            <p>Sensors associated with the room: ${uniqueSensors.join(", ") || "None"}</p>
+                            <div>Windows:</div>
                             ${windows}
                         </div>
                     `;
                 })
-                .catch(console.error);
+                .catch(error => {
+                    const associationList = document.getElementById("associations");
+                    associationList.innerHTML = `<p>Error: ${error.message}</p>`;
+                });
         }
+
 
 
         function associateSensorToRoom(event) {
