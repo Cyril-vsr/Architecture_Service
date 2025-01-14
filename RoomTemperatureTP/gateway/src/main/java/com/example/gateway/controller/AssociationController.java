@@ -28,16 +28,16 @@ public class AssociationController {
     }
 
     @PostMapping("/sensors")
-    public ResponseEntity<String> associateSensorToWindow(@RequestBody Map<String, Long> request) {
-        Long windowId = request.get("windowId");
+    public ResponseEntity<String> associateSensorToRoom(@RequestBody Map<String, Long> request) {
+        Long roomId = request.get("roomId");
         Long sensorId = request.get("sensorId");
 
-        if (windowId == null || sensorId == null) {
-            return ResponseEntity.badRequest().body("windowId and sensorId are required");
+        if (roomId == null || sensorId == null) {
+            return ResponseEntity.badRequest().body("roomId and sensorId are required");
         }
 
-        windowToSensorsMap.computeIfAbsent(windowId, k -> new ArrayList<>()).add(sensorId);
-        return ResponseEntity.ok("Sensor associated to window successfully");
+        windowToSensorsMap.computeIfAbsent(roomId, k -> new ArrayList<>()).add(sensorId);
+        return ResponseEntity.ok("Sensor associated to room successfully");
     }
 
     @DeleteMapping("/rooms/{roomId}")
@@ -52,7 +52,6 @@ public class AssociationController {
     @DeleteMapping("/windows/{windowId}")
     public ResponseEntity<String> deleteWindow(@PathVariable Long windowId) {
         roomToWindowsMap.forEach((room, windows) -> windows.remove(windowId));
-        windowToSensorsMap.remove(windowId);
         return ResponseEntity.ok("Window and its associations deleted successfully");
     }
 
@@ -65,7 +64,7 @@ public class AssociationController {
         roomToWindowsMap.forEach((roomId, windows) -> {
             List<Map<String, Object>> windowDetails = new ArrayList<>();
             windows.forEach(windowId -> {
-                List<Long> sensors = windowToSensorsMap.getOrDefault(windowId, new ArrayList<>());
+                List<Long> sensors = windowToSensorsMap.getOrDefault(roomId, new ArrayList<>());
                 Map<String, Object> windowInfo = new HashMap<>();
                 windowInfo.put("id", windowId);
                 windowInfo.put("sensors", sensors.stream().map(id -> Map.of("id", id)).toList());
@@ -87,7 +86,7 @@ public class AssociationController {
 
         List<Map<String, Object>> windowDetails = new ArrayList<>();
         for (Long windowId : windows) {
-            List<Long> sensors = windowToSensorsMap.getOrDefault(windowId, new ArrayList<>());
+            List<Long> sensors = windowToSensorsMap.getOrDefault(roomId, new ArrayList<>());
             Map<String, Object> windowInfo = new HashMap<>();
             windowInfo.put("id", windowId);
             windowInfo.put("sensors", sensors.stream().map(id -> Map.of("id", id)).toList());

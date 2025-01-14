@@ -91,9 +91,9 @@
 
     <div>
         <h2>Associate Sensors to Windows</h2>
-        <form onsubmit="associateSensorToWindow(event)">
-            <select id="window-select-for-sensor" required>
-                <option value="" disabled selected>Select a window</option>
+        <form onsubmit="associateSensorToRoom(event)">
+            <select id="room-select-for-sensors" required>
+                <option value="" disabled selected>Select a room</option>
             </select>
             <select id="sensor-select" required>
                 <option value="" disabled selected>Select a sensor</option>
@@ -101,6 +101,7 @@
             <button type="submit">Associate</button>
         </form>
     </div>
+
 
 
 
@@ -126,35 +127,39 @@
         </select>
     </div>
 
+    <h2>Room Monitoring Status</h2>
+    <div id="status-list"></div>
 
     <script>
         const ROOM_URL = "/rooms";
         const WINDOW_URL = "/windows";
         const SENSOR_URL = "sensors";
         const ASSOCIATION_URL = "/associations";
+        const STATUS_URL = "/temperature/status";
 
         async function initialize() {
             fetchAllRooms();
             fetchAllWindows();
             fetchAllSensors();
             fetchAllAssociations();
+            fetchRoomStatus();
 
             setInterval(fetchAllSensors, 5000);
+            setInterval(fetchRoomStatus, 5000);
         }
 
-        // Fetch all rooms
         function fetchAllRooms() {
             fetch(ROOM_URL)
                 .then(response => response.json())
                 .then(data => {
                     const roomList = document.getElementById("room-list");
                     const roomSelect = document.getElementById("room-select");
-                    const windowSelectForSensor = document.getElementById("window-select-for-sensor");
-                    const roomAssociationSelect = document.getElementById("room-association-select"); // New dropdown
+                    const roomSelectForSensors = document.getElementById("room-select-for-sensors");
+                    const roomAssociationSelect = document.getElementById("room-association-select");
 
                     roomList.innerHTML = "";
-                    roomSelect.innerHTML = "";
-                    windowSelectForSensor.innerHTML = "<option value='' disabled selected>Select a room</option>";
+                    roomSelect.innerHTML = "<option value='' disabled selected>Select a room</option>";
+                    roomSelectForSensors.innerHTML = "<option value='' disabled selected>Select a room</option>";
                     roomAssociationSelect.innerHTML = "<option value='' disabled selected>Select a room to view associations</option>";
 
                     data.forEach(room => {
@@ -168,12 +173,13 @@
 
                         const option = `<option value="${room.id}">${room.name}</option>`;
                         roomSelect.innerHTML += option;
-                        windowSelectForSensor.innerHTML += option;
+                        roomSelectForSensors.innerHTML += option;
                         roomAssociationSelect.innerHTML += option;
                     });
                 })
                 .catch(console.error);
         }
+
 
         // Add a room
         function addRoom(event) {
@@ -228,11 +234,9 @@
                 .then(data => {
                     const windowList = document.getElementById("window-list");
                     const windowSelect = document.getElementById("window-select");
-                    const windowSelectForSensor = document.getElementById("window-select-for-sensor");
 
                     windowList.innerHTML = "";
                     windowSelect.innerHTML = "<option value='' disabled selected>Select a window</option>";
-                    windowSelectForSensor.innerHTML = "<option value='' disabled selected>Select a window</option>";
 
                     data.forEach(window => {
                         windowList.innerHTML += `
@@ -245,7 +249,6 @@
                 `;
                         const option = `<option value="${window.id}">${window.name}</option>`;
                         windowSelect.innerHTML += option;
-                        windowSelectForSensor.innerHTML += option; // Correctly populating the sensor-window dropdown
                     });
                 })
                 .catch(console.error);
@@ -397,6 +400,7 @@
                 .catch(console.error);
         }
 
+
         // Fetch all associations
         function fetchAllAssociations() {
             fetch(ASSOCIATION_URL) // Fetch all associations
@@ -407,22 +411,31 @@
 
                     // Iterate through the list of associations
                     data.forEach(assoc => {
+                        // Extract unique sensor IDs for the room
+                        const sensors = assoc.windows.flatMap(w => w.sensors.map(s => s.id));
+                        const uniqueSensors = [...new Set(sensors)];
+
+                        // Display windows for the room
                         const windows = assoc.windows.map(w => `
-                            <div>
-                                Window ID: ${w.id}, Sensors: ${w.sensors.map(s => s.id).join(", ")}
-                            </div>`).join("");
+                    <div>
+                        <p>Window ID: ${w.id}</p>
+                    </div>
+                `).join("");
 
                         // Build the association display
                         associationList.innerHTML += `
-                            <div class="association">
-                                <h3>Room ID: ${assoc.room.id}</h3>
-                                ${windows}
-                            </div>
-                        `;
+                    <div class="association">
+                        <h3>Room ID: ${assoc.room.id}</h3>
+                        <p>Sensors associated with the room: ${uniqueSensors.join(", ") || "None"}</p>
+                        <div>Windows:</div>
+                        ${windows}
+                    </div>
+                `;
                     });
                 })
                 .catch(console.error);
         }
+
 
         // Fetch associations by room ID
         function fetchAssociationsByRoomId(roomId) {
@@ -449,14 +462,14 @@
         }
 
 
-        function associateSensorToWindow(event) {
+        function associateSensorToRoom(event) {
             event.preventDefault();
-            const windowId = document.getElementById("window-select-for-sensor").value;
+            const roomId = document.getElementById("room-select-for-sensors").value;
             const sensorId = document.getElementById("sensor-select").value;
             fetch(`${ASSOCIATION_URL}/sensors`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ windowId: parseInt(windowId), sensorId: parseInt(sensorId) })
+                body: JSON.stringify({ roomId: parseInt(roomId), sensorId: parseInt(sensorId) })
             })
                 .then(fetchAllAssociations)
                 .catch(console.error);
@@ -470,6 +483,46 @@
         function navigateToHistory() {
             window.location.href = "historic";
         }
+
+        function fetchRoomStatus() {
+            fetch(STATUS_URL)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch room status: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const statusList = document.getElementById("status-list");
+                    statusList.innerHTML = "";
+                    
+                    data.forEach(room => {
+                        // Générer la liste des fenêtres et leurs états
+                        const windows = room.windows.map(w => `
+                    <div>Window ID: ${w.id}, State: ${w.state}</div>
+                `).join("");
+
+                        // Ajouter les détails de la pièce
+                        statusList.innerHTML += `
+                    <div class="room">
+                        <h3>Room ID: ${room.roomId}</h3>
+                        <p>Temperature: ${room.temperature.toFixed(1)}°C</p>
+                        <div>Windows:</div>
+                        ${windows}
+                    </div>
+                `;
+                    });
+                })
+                .catch(error => {
+                    console.error("Error fetching room status:", error); // Log the error
+                });
+        }
+
+
+
+
+
+
 
 
 
